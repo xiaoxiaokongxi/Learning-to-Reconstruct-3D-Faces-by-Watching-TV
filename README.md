@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DECA: Detailed Expression Capture and Animation (SIGGRAPH2021)
 
 <p align="center"> 
@@ -157,3 +158,21 @@ We would also like to thank other recent public 3D face reconstruction works tha
 [extreme_3d_faces](https://github.com/anhttran/extreme_3d_faces),
 [facescape](https://github.com/zhuhao-nju/facescape)
 <!-- 3DMMasSTN, DenseReg, 3dmm_cnn, vrn, pix2vertex -->
+=======
+# Learning-to-Reconstruct-3D-Faces-by-Watching-TV
+3D Vision course project from ETHZ, generate person-specific high-quality 3D face models from TV videos 
+## Face segmentation
+Use own repo
+```Shell
+git clone git@github.com:xiyichen/face-parsing.PyTorch.git
+```
+then
+```Shell
+from pred_mask import evaluate
+masks = evaluate(respth=RESULT_SAVE_PATH,
+                 dspth=INPUT_IMAGE_PATH,
+                 model_path=PRETRAINED_MODEL_PATH,
+                 save_masks=TRUE/FALSE,
+                 save_imgs=TRUE/FALSE)
+```
+>>>>>>> b79079a36250d9859228fed789b00e7e150ee31c
