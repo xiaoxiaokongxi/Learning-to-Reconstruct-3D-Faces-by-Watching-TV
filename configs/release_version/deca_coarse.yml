@@ -1,0 +1,19 @@
+# Time:
+# around 15min/1000iterations
+# in total, needs around 
+output_dir: "/content/drive/MyDrive/Colab_Notebooks/NewDECA/Coarse"
+pretrained_modelpath: "/content/drive/MyDrive/Colab_Notebooks/DECA/data/deca_model.tar"
+dataset:
+  batch_size: 12
+  K: 1
+train:
+  resume: True
+  max_epochs: 100
+  max_steps: 200000
+  log_steps: 20
+  vis_steps: 500
+  checkpoint_steps: 1000
+  val_steps: 500
+  eval_steps: 1000
+
+# python main_train_deca_release.py --cfg configs/release_version/deca_coarse.yml

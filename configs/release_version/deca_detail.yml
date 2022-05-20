@@ -1,0 +1,22 @@
+
+# why:
+# pretrained_modelpath: '/ps/scratch/yfeng/Data/Projects-data/DECA-training/training/DECA_SIGGRAPH/pretrain/model.tar'
+output_dir: "/content/drive/MyDrive/Colab_Notebooks/NewDECA/Detail"
+# pretrained_modelpath: "/content/drive/MyDrive/Colab_Notebooks/NewDECA/Coarse/model.tar"
+pretrained_modelpath: "/content/drive/MyDrive/Colab_Notebooks/DECA/data/deca_model.tar"
+dataset:
+  batch_size: 4
+  K: 1
+train:
+  train_detail: True
+  resume: True
+  max_epochs: 60
+  max_steps: 1000000
+  log_steps: 10
+  vis_steps: 10
+  checkpoint_steps: 1000
+  val_steps: 500
+  eval_steps: 1000
+dataset:
+  training_data: ['vggface2']
+# python main_train_deca_release.py --cfg configs/release_version/deca_coarse.yml
