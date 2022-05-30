@@ -2,8 +2,8 @@
 #
 # Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. (MPG) is
 # holder of all proprietary rights on this computer program.
-# Using this computer program means that you agree to the terms 
-# in the LICENSE file included with this software distribution. 
+# Using this computer program means that you agree to the terms
+# in the LICENSE file included with this software distribution.
 # Any use not explicitly granted by the LICENSE is prohibited.
 #
 # Copyright©2019 Max-Planck-Gesellschaft zur Förderung
@@ -15,12 +15,13 @@
 
 import torch
 import torch.nn as nn
+import pdb
 
 class Generator(nn.Module):
     def __init__(self, latent_dim=100, out_channels=1, out_scale=0.01, sample_mode = 'bilinear'):
         super(Generator, self).__init__()
         self.out_scale = out_scale
-        
+
         self.init_size = 32 // 4  # Initial size before upsampling
         self.l1 = nn.Sequential(nn.Linear(latent_dim, 128 * self.init_size ** 2))
         self.conv_blocks = nn.Sequential(
@@ -49,8 +50,8 @@ class Generator(nn.Module):
             nn.Tanh(),
         )
 
-    def forward(self, noise):
-        out = self.l1(noise)
-        out = out.view(out.shape[0], 128, self.init_size, self.init_size)
-        img = self.conv_blocks(out)
+    def forward(self, noise):  # [8, 181]
+        out = self.l1(noise)   # [8, 8192]
+        out = out.view(out.shape[0], 128, self.init_size, self.init_size)  # [8, 128, 8, 8]
+        img = self.conv_blocks(out)  # [8, 1, 256, 256]
         return img*self.out_scale

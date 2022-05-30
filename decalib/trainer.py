@@ -2,8 +2,8 @@
 #
 # Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. (MPG) is
 # holder of all proprietary rights on this computer program.
-# Using this computer program means that you agree to the terms 
-# in the LICENSE file included with this software distribution. 
+# Using this computer program means that you agree to the terms
+# in the LICENSE file included with this software distribution.
 # Any use not explicitly granted by the LICENSE is prohibited.
 #
 # Copyright©2019 Max-Planck-Gesellschaft zur Förderung
@@ -39,6 +39,7 @@ from .utils.config import cfg
 torch.backends.cudnn.benchmark = True
 from .utils import lossfunc
 from .datasets import build_datasets
+import pdb
 
 class Trainer(object):
     def __init__(self, model, config=None, device='cuda:0'):
@@ -59,19 +60,19 @@ class Trainer(object):
         self.configure_optimizers()
         self.load_checkpoint()
 
-        # initialize loss  
-        # # initialize loss   
-        if self.train_detail:     
+        # initialize loss
+        # # initialize loss
+        if self.train_detail:
             self.mrf_loss = lossfunc.IDMRFLoss()
             self.face_attr_mask = util.load_local_mask(image_size=self.cfg.model.uv_size, mode='bbx')
         else:
-            self.id_loss = lossfunc.VGGFace2Loss(pretrained_model=self.cfg.model.fr_model_path)      
-        
+            self.id_loss = lossfunc.VGGFace2Loss(pretrained_model=self.cfg.model.fr_model_path)
+
         logger.add(os.path.join(self.cfg.output_dir, self.cfg.train.log_dir, 'train.log'))
         if self.cfg.train.write_summary:
             from torch.utils.tensorboard import SummaryWriter
             self.writer = SummaryWriter(log_dir=os.path.join(self.cfg.output_dir, self.cfg.train.log_dir))
-    
+
     def configure_optimizers(self):
         if self.train_detail:
             self.opt = torch.optim.Adam(
@@ -112,24 +113,26 @@ class Trainer(object):
         if self.train_detail:
             self.deca.E_flame.eval()
         # [B, K, 3, size, size] ==> [BxK, 3, size, size]
-        
-        images = batch['image'].to(self.device); images = images.view(-1, images.shape[-3], images.shape[-2], images.shape[-1]) 
-        lmk = batch['landmark'].to(self.device); lmk = lmk.view(-1, lmk.shape[-2], lmk.shape[-1])
-        masks = batch['mask'].to(self.device); masks = masks.view(-1, images.shape[-2], images.shape[-1]) 
-        print(images.shape)
+
+        images = batch['image'].to(self.device)  #; images = images.view(-1, images.shape[-3], images.shape[-2], images.shape[-1])
+        lmk = batch['landmark'].to(self.device)  #; lmk = lmk.view(-1, lmk.shape[-2], lmk.shape[-1])
+        masks = batch['mask'].to(self.device)    #; masks = masks.view(-1, images.shape[-2], images.shape[-1])
 
         #-- encoder
+        # print("000", images.shape)
         codedict = self.deca.encode(images, use_detail=self.train_detail)
-        
+
+
         ### shape constraints for coarse model
         ### detail consistency for detail model
         # import ipdb; ipdb.set_trace()
         if self.cfg.loss.shape_consistency or self.cfg.loss.detail_consistency:
             '''
             make sure s0, s1 is something to make shape close
-            the difference from ||so - s1|| is 
+            the difference from ||so - s1|| is
             the later encourage s0, s1 is cloase in l2 space, but not really ensure shape will be close
             '''
+            # pdb.set_trace()
             new_order = np.array([np.random.permutation(self.K) + i*self.K for i in range(self.batch_size)])
             new_order = new_order.flatten()
             shapecode = codedict['shape']
@@ -141,15 +144,16 @@ class Trainer(object):
                 codedict['detail'] = torch.cat([detailcode, detailcode_new], dim=0)
                 codedict['shape'] = torch.cat([shapecode, shapecode], dim=0)
             else:
-                shapecode_new = shapecode[new_order]
-                codedict['shape'] = torch.cat([shapecode, shapecode_new], dim=0)
+                shapecode_new = shapecode[new_order]  # [32, 100]
+                codedict['shape'] = torch.cat([shapecode, shapecode_new], dim=0) # [32, 100]
             for key in ['tex', 'exp', 'pose', 'cam', 'light', 'images']:
-                code = codedict[key]
-                codedict[key] = torch.cat([code, code], dim=0)
+                code = codedict[key]  # [16, 50]
+                codedict[key] = torch.cat([code, code], dim=0)  # [32, 50]
+
             ## append gt
-            images = torch.cat([images, images], dim=0)# images = images.view(-1, images.shape[-3], images.shape[-2], images.shape[-1]) 
-            lmk = torch.cat([lmk, lmk], dim=0) #lmk = lmk.view(-1, lmk.shape[-2], lmk.shape[-1])
-            masks = torch.cat([masks, masks], dim=0)
+            images = torch.cat([images, images], dim=0).view(-1, images.shape[2], images.shape[3], images.shape[4]) # [32, 3, 224, 224] images = images.view(-1, images.shape[-3], images.shape[-2], images.shape[-1])
+            lmk = torch.cat([lmk, lmk], dim=0).view(-1, lmk.shape[2], lmk.shape[3]) #[32, 68, 3]   lmk = lmk.view(-1, lmk.shape[-2], lmk.shape[-1])
+            masks = torch.cat([masks, masks], dim=0).view(-1, masks.shape[2], masks.shape[3])  # [32, 224, 224]
 
         batch_size = images.shape[0]
 
@@ -160,29 +164,29 @@ class Trainer(object):
             opdict = self.deca.decode(codedict, rendering = rendering, vis_lmk=False, return_vis=False, use_detail=False)
             opdict['images'] = images
             opdict['lmk'] = lmk
-
+            # pdb.set_trace()
             if self.cfg.loss.photo > 0.:
                 #------ rendering
                 # mask
-                mask_face_eye = F.grid_sample(self.deca.uv_face_eye_mask.expand(batch_size,-1,-1,-1), opdict['grid'].detach(), align_corners=False) 
+                mask_face_eye = F.grid_sample(self.deca.uv_face_eye_mask.expand(batch_size,-1,-1,-1), opdict['grid'].detach(), align_corners=False)
                 # images
                 predicted_images = opdict['rendered_images']*mask_face_eye*opdict['alpha_images']
                 opdict['predicted_images'] = predicted_images
 
             #### ----------------------- Losses
             losses = {}
-            
+            # pdb.set_trace()
             ############################# base shape
-            predicted_landmarks = opdict['landmarks2d']
+            predicted_landmarks = opdict['landmarks2d']  #[32, 68, 2]
             if self.cfg.loss.useWlmk:
                 losses['landmark'] = lossfunc.weighted_landmark_loss(predicted_landmarks, lmk)*self.cfg.loss.lmk
-            else:    
+            else:
                 losses['landmark'] = lossfunc.landmark_loss(predicted_landmarks, lmk)*self.cfg.loss.lmk
             if self.cfg.loss.eyed > 0.:
                 losses['eye_distance'] = lossfunc.eyed_loss(predicted_landmarks, lmk)*self.cfg.loss.eyed
             if self.cfg.loss.lipd > 0.:
                 losses['lip_distance'] = lossfunc.lipd_loss(predicted_landmarks, lmk)*self.cfg.loss.lipd
-            
+
             if self.cfg.loss.photo > 0.:
                 if self.cfg.loss.useSeg:
                     masks = masks[:,None,:,:]
@@ -195,7 +199,7 @@ class Trainer(object):
                 albedo_images = F.grid_sample(opdict['albedo'].detach(), opdict['grid'], align_corners=False)
                 overlay = albedo_images*shading_images*mask_face_eye + images*(1-mask_face_eye)
                 losses['identity'] = self.id_loss(overlay, images) * self.cfg.loss.id
-            
+
             losses['shape_reg'] = (torch.sum(codedict['shape']**2)/2)*self.cfg.loss.reg_shape
             losses['expression_reg'] = (torch.sum(codedict['exp']**2)/2)*self.cfg.loss.reg_exp
             losses['tex_reg'] = (torch.sum(codedict['tex']**2)/2)*self.cfg.loss.reg_tex
@@ -205,7 +209,7 @@ class Trainer(object):
                 # reg on jaw pose
                 losses['reg_jawpose_roll'] = (torch.sum(codedict['euler_jaw_pose'][:,-1]**2)/2)*100.
                 losses['reg_jawpose_close'] = (torch.sum(F.relu(-codedict['euler_jaw_pose'][:,0])**2)/2)*10.
-        
+
         ###--------------- training detail model
         else:
             #-- decoder
@@ -226,11 +230,11 @@ class Trainer(object):
             # camera to image space
             trans_verts[:,:,1:] = -trans_verts[:,:,1:]
             predicted_landmarks[:,:,1:] = - predicted_landmarks[:,:,1:]
-            
+
             albedo = self.deca.flametex(texcode)
 
             #------ rendering
-            ops = self.deca.render(verts, trans_verts, albedo, lightcode) 
+            ops = self.deca.render(verts, trans_verts, albedo, lightcode)
             # mask
             mask_face_eye = F.grid_sample(self.deca.uv_face_eye_mask.expand(batch_size,-1,-1,-1), ops['grid'].detach(), align_corners=False)
             # images
@@ -255,11 +259,11 @@ class Trainer(object):
             uv_mask = (uv_pnorm[:,[-1],:,:] < -0.05).float().detach()
             ## combine masks
             uv_vis_mask = uv_mask_gt*uv_mask*self.deca.uv_face_eye_mask
-            
+
             #### ----------------------- Losses
             losses = {}
             ############################### details
-            # if self.cfg.loss.old_mrf: 
+            # if self.cfg.loss.old_mrf:
             #     if self.cfg.loss.old_mrf_face_mask:
             #         masks = masks*mask_face_eye*ops['alpha_images']
             #     losses['photo_detail'] = (masks*(predicted_detailed_image - images).abs()).mean()*100
@@ -270,7 +274,7 @@ class Trainer(object):
             uv_texture_patch = F.interpolate(uv_texture[:, :, self.face_attr_mask[pi][2]:self.face_attr_mask[pi][3], self.face_attr_mask[pi][0]:self.face_attr_mask[pi][1]], [new_size, new_size], mode='bilinear')
             uv_texture_gt_patch = F.interpolate(uv_texture_gt[:, :, self.face_attr_mask[pi][2]:self.face_attr_mask[pi][3], self.face_attr_mask[pi][0]:self.face_attr_mask[pi][1]], [new_size, new_size], mode='bilinear')
             uv_vis_mask_patch = F.interpolate(uv_vis_mask[:, :, self.face_attr_mask[pi][2]:self.face_attr_mask[pi][3], self.face_attr_mask[pi][0]:self.face_attr_mask[pi][1]], [new_size, new_size], mode='bilinear')
-            
+
             losses['photo_detail'] = (uv_texture_patch*uv_vis_mask_patch - uv_texture_gt_patch*uv_vis_mask_patch).abs().mean()*self.cfg.loss.photo_D
             losses['photo_detail_mrf'] = self.mrf_loss(uv_texture_patch*uv_vis_mask_patch, uv_texture_gt_patch*uv_vis_mask_patch)*self.cfg.loss.photo_D*self.cfg.loss.mrf
 
@@ -288,7 +292,7 @@ class Trainer(object):
                 'images': images,
                 'lmk': lmk
             }
-            
+
         #########################################################
         all_loss = 0.
         losses_key = losses.keys()
@@ -296,7 +300,7 @@ class Trainer(object):
             all_loss = all_loss + losses[key]
         losses['all_loss'] = all_loss
         return losses, opdict
-        
+
     def validation_step(self):
         self.deca.eval()
         try:
@@ -304,9 +308,12 @@ class Trainer(object):
         except:
             self.val_iter = iter(self.val_dataloader)
             batch = next(self.val_iter)
-        images = batch['image'].to(self.device); images = images.view(-1, images.shape[-3], images.shape[-2], images.shape[-1]) 
+
+        images = batch['image'].to(self.device); images = images.view(-1, images.shape[-3], images.shape[-2], images.shape[-1])
         with torch.no_grad():
             codedict = self.deca.encode(images)
+            # pdb.set_trace()
+            codedict['images'] = codedict['images'].squeeze(0)  # TODO
             opdict, visdict = self.deca.decode(codedict)
         savepath = os.path.join(self.cfg.output_dir, self.cfg.train.val_vis_dir, f'{self.global_step:08}.jpg')
         grid_image = util.visualize_grid(visdict, savepath, return_gird=True)
@@ -314,10 +321,10 @@ class Trainer(object):
         self.deca.train()
 
     def evaluate(self):
-        ''' NOW validation 
+        ''' NOW validation
         '''
         os.makedirs(os.path.join(self.cfg.output_dir, 'NOW_validation'), exist_ok=True)
-        savefolder = os.path.join(self.cfg.output_dir, 'NOW_validation', f'step_{self.global_step:08}') 
+        savefolder = os.path.join(self.cfg.output_dir, 'NOW_validation', f'step_{self.global_step:08}')
         os.makedirs(savefolder, exist_ok=True)
         self.deca.eval()
         # run now validation images
@@ -372,8 +379,8 @@ class Trainer(object):
                             pin_memory=True,
                             drop_last=True)
         self.train_iter = iter(self.train_dataloader)
-        self.val_dataloader = DataLoader(self.val_dataset, batch_size=8, shuffle=True,
-                            num_workers=8,
+        self.val_dataloader = DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=True,
+                            num_workers=self.cfg.dataset.num_workers,
                             pin_memory=True,
                             drop_last=False)
         self.val_iter = iter(self.val_dataloader)
@@ -399,28 +406,30 @@ class Trainer(object):
                     for k, v in losses.items():
                         loss_info = loss_info + f'{k}: {v:.4f}, '
                         if self.cfg.train.write_summary:
-                            self.writer.add_scalar('train_loss/'+k, v, global_step=self.global_step)                    
+                            self.writer.add_scalar('train_loss/'+k, v, global_step=self.global_step)
                     logger.info(loss_info)
 
                 if self.global_step % self.cfg.train.vis_steps == 0:
-                    print("Flag1")
+                    # print("Flag1")
                     num_vis = self.batch_size * self.K
                     visind = list(range(num_vis))
                     shape_images = self.deca.render.render_shape(opdict['verts'][visind], opdict['trans_verts'][visind])
+                    # pdb.set_trace()
+                    # print(opdict['landmarks2d'][visind].max())
                     visdict = {
-                        'inputs': opdict['images'][visind], 
+                        'inputs': opdict['images'][visind],
                         'landmarks2d_gt': util.tensor_vis_landmarks(opdict['images'][visind], opdict['lmk'][visind], isScale=True),
                         'landmarks2d': util.tensor_vis_landmarks(opdict['images'][visind], opdict['landmarks2d'][visind], isScale=True),
                         'shape_images': shape_images,
                     }
                     if 'predicted_images' in opdict.keys():
                         visdict['predicted_images'] = opdict['predicted_images'][visind]
-                    if 'predicted_detail_images' in opdict.keys():
-                        visdict['predicted_detail_images'] = opdict['predicted_detail_images'][visind]
+                    # if 'predicted_detail_images' in opdict.keys():
+                    visdict['predicted_detail_images'] = opdict['predicted_detail_images'][visind]
 
                     savepath = os.path.join(self.cfg.output_dir, self.cfg.train.vis_dir, f'{self.global_step:06}.jpg')
                     grid_image = util.visualize_grid(visdict, savepath, return_gird=True)
-                    # import ipdb; ipdb.set_trace()                    
+                    # import ipdb; ipdb.set_trace()
                     self.writer.add_image('train_images', (grid_image/255.).astype(np.float32).transpose(2,0,1), self.global_step)
 
                 if self.global_step>0 and self.global_step % self.cfg.train.checkpoint_steps == 0:
@@ -428,15 +437,15 @@ class Trainer(object):
                     model_dict['opt'] = self.opt.state_dict()
                     model_dict['global_step'] = self.global_step
                     model_dict['batch_size'] = self.batch_size
-                    torch.save(model_dict, os.path.join(self.cfg.output_dir, 'model' + '.tar'))   
-                    # 
+                    torch.save(model_dict, os.path.join(self.cfg.output_dir, 'model' + '.tar'))
+                    #
                     if self.global_step % self.cfg.train.checkpoint_steps*10 == 0:
                         os.makedirs(os.path.join(self.cfg.output_dir, 'models'), exist_ok=True)
-                        torch.save(model_dict, os.path.join(self.cfg.output_dir, 'models', f'{self.global_step:08}.tar'))   
+                        torch.save(model_dict, os.path.join(self.cfg.output_dir, 'models', f'{self.global_step:08}.tar'))
 
-                if self.global_step % self.cfg.train.val_steps == 0:
-                    self.validation_step()
-                
+                # if self.global_step % self.cfg.train.val_steps == 0:
+                self.validation_step()
+
                 # if self.global_step % self.cfg.train.eval_steps == 0:
                 #     self.evaluate()
 

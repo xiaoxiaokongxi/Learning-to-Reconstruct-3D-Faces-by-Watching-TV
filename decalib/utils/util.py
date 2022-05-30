@@ -2,8 +2,8 @@
 #
 # Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. (MPG) is
 # holder of all proprietary rights on this computer program.
-# Using this computer program means that you agree to the terms 
-# in the LICENSE file included with this software distribution. 
+# Using this computer program means that you agree to the terms
+# in the LICENSE file included with this software distribution.
 # Any use not explicitly granted by the LICENSE is prohibited.
 #
 # Copyright©2019 Max-Planck-Gesellschaft zur Förderung
@@ -32,8 +32,8 @@ def upsample_mesh(vertices, normals, faces, displacement_map, texture_map, dense
         faces: faces of coarse mesh, [nf, 3]
         texture_map: texture map, [256, 256, 3]
         displacement_map: displacment map, [256, 256]
-        dense_template: 
-    Returns: 
+        dense_template:
+    Returns:
         dense_vertices: upsampled vertices with details, [number of dense vertices, 3]
         dense_colors: vertex color, [number of dense vertices, 3]
         dense_faces: [number of dense faces, 3]
@@ -71,7 +71,7 @@ def write_obj(obj_name,
               inverse_face_order=False,
               normal_map=None,
               ):
-    ''' Save 3D face model with texture. 
+    ''' Save 3D face model with texture.
     Ref: https://github.com/patrikhuber/eos/blob/bd00155ebae4b1a13b08bf5a991694d682abbada/include/eos/core/Mesh.hpp
     Args:
         obj_name: str
@@ -227,7 +227,7 @@ def generate_triangles(h, w, margin_x=2, margin_y=5, mask = None):
 
 # borrowed from https://github.com/daniilidis-group/neural_renderer/blob/master/neural_renderer/vertices_to_faces.py
 def face_vertices(vertices, faces):
-    """ 
+    """
     :param vertices: [batch size, number of vertices, 3]
     :param faces: [batch size, number of faces, 3]
     :return: [batch size, number of faces, 3, 3]
@@ -245,7 +245,7 @@ def face_vertices(vertices, faces):
     vertices = vertices.reshape((bs * nv, 3))
     # pytorch only supports long and byte tensors for indexing
     return vertices[faces.long()]
-    
+
 def vertex_normals(vertices, faces):
     """
     :param vertices: [batch size, number of vertices, 3]
@@ -268,9 +268,9 @@ def vertex_normals(vertices, faces):
     faces = faces.reshape(-1, 3)
     vertices_faces = vertices_faces.reshape(-1, 3, 3)
 
-    normals.index_add_(0, faces[:, 1].long(), 
+    normals.index_add_(0, faces[:, 1].long(),
                        torch.cross(vertices_faces[:, 2] - vertices_faces[:, 1], vertices_faces[:, 0] - vertices_faces[:, 1]))
-    normals.index_add_(0, faces[:, 2].long(), 
+    normals.index_add_(0, faces[:, 2].long(),
                        torch.cross(vertices_faces[:, 0] - vertices_faces[:, 2], vertices_faces[:, 1] - vertices_faces[:, 2]))
     normals.index_add_(0, faces[:, 0].long(),
                        torch.cross(vertices_faces[:, 1] - vertices_faces[:, 0], vertices_faces[:, 2] - vertices_faces[:, 0]))
@@ -291,7 +291,7 @@ def batch_orth_proj(X, camera):
     shape = X_trans.shape
     Xn = (camera[:, :, 0:1] * X_trans)
     return Xn
-    
+
 # -------------------------------------- image processing
 # borrowed from: https://torchgeometry.readthedocs.io/en/latest/_modules/kornia/filters
 def gaussian(window_size, sigma):
@@ -449,8 +449,8 @@ def angle2matrix(angles):
     Args:
         angles: [batch_size, 3] tensor containing X, Y, and Z angles.
         x: pitch. positive for looking down.
-        y: yaw. positive for looking left. 
-        z: roll. positive for tilting head right. 
+        y: yaw. positive for looking left.
+        z: roll. positive for tilting head right.
     Returns:
         R: [batch_size, 3, 3]. rotation matrices.
     '''
@@ -476,7 +476,7 @@ def angle2matrix(angles):
     return R
 
 def binary_erosion(tensor, kernel_size=5):
-    # tensor: [bz, 1, h, w]. 
+    # tensor: [bz, 1, h, w].
     device = tensor.device
     mask = tensor.cpu().numpy()
     structure=np.ones((kernel_size,kernel_size))
@@ -489,7 +489,7 @@ def flip_image(src_image, kps):
     '''
         purpose:
             flip a image given by src_image and the 2d keypoints
-        flip_mode: 
+        flip_mode:
             0: horizontal flip
             >0: vertical flip
             <0: horizontal & vertical flip
@@ -573,12 +573,12 @@ def dict_tensor2npy(tensor_dict):
     for key in tensor_dict:
         npy_dict[key] = tensor_dict[key][0].cpu().numpy()
     return npy_dict
-        
+
 # ---------------------------------- visualization
 end_list = np.array([17, 22, 27, 42, 48, 31, 36, 68], dtype = np.int32) - 1
 def plot_kpts(image, kpts, color = 'r'):
     ''' Draw 68 key points
-    Args: 
+    Args:
         image: the input image
         kpt: (68, 3).
     '''
@@ -602,13 +602,13 @@ def plot_kpts(image, kpts, color = 'r'):
             continue
         ed = kpts[i + 1, :2]
         image = cv2.line(image, (int(st[0]), int(st[1])), (int(ed[0]), int(ed[1])), (255, 255, 255), radius)
-        image = cv2.circle(image,(int(st[0]), int(st[1])), radius, c, radius*2)  
+        image = cv2.circle(image,(int(st[0]), int(st[1])), radius, c, radius*2)
 
     return image
 
 def plot_verts(image, kpts, color = 'r'):
     ''' Draw 68 key points
-    Args: 
+    Args:
         image: the input image
         kpt: (68, 3).
     '''
@@ -624,7 +624,7 @@ def plot_verts(image, kpts, color = 'r'):
 
     for i in range(kpts.shape[0]):
         st = kpts[i, :2]
-        image = cv2.circle(image,(int(st[0]), int(st[1])), 1, c, 2)  
+        image = cv2.circle(image,(int(st[0]), int(st[1])), 1, c, 2)
 
     return image
 
@@ -694,7 +694,7 @@ def visualize_grid(visdict, savepath=None, size=224, dim=1, return_gird=True):
             new_h = size; new_w = int(w*size/h)
         elif dim == 1:
             new_h = int(h*size/w); new_w = size
-        grids[key] = torchvision.utils.make_grid(F.interpolate(visdict[key], [new_h, new_w]).detach().cpu())
+        grids[key] = torchvision.utils.make_grid(F.interpolate(visdict[key], [new_h, new_w]).detach().cpu(), nrow=5)
     grid = torch.cat(list(grids.values()), dim)
     grid_image = (grid.numpy().transpose(1,2,0).copy()*255)[:,:,[2,1,0]]
     grid_image = np.minimum(np.maximum(grid_image, 0), 255).astype(np.uint8)

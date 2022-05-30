@@ -2,8 +2,8 @@
 #
 # Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. (MPG) is
 # holder of all proprietary rights on this computer program.
-# Using this computer program means that you agree to the terms 
-# in the LICENSE file included with this software distribution. 
+# Using this computer program means that you agree to the terms
+# in the LICENSE file included with this software distribution.
 # Any use not explicitly granted by the LICENSE is prohibited.
 #
 # Copyright©2019 Max-Planck-Gesellschaft zur Förderung
@@ -25,7 +25,7 @@ from skimage.io import imread
 import cv2
 import pickle
 from .utils.renderer import SRenderY, set_rasterizer
-from .models.encoders import ResnetEncoder
+from .models.encoders import ResnetEncoder, RNNResnetEncoder
 from .models.FLAME import FLAME, FLAMETex
 from .models.decoders import Generator
 from .utils import util
@@ -34,6 +34,8 @@ from .utils.tensor_cropper import transform_points
 from .datasets import datasets
 from .utils.config import cfg
 torch.backends.cudnn.benchmark = True
+import pdb
+
 
 class DECA(nn.Module):
     def __init__(self, config=None, device='cuda'):
@@ -75,8 +77,8 @@ class DECA(nn.Module):
         self.param_dict = {i:model_cfg.get('n_' + i) for i in model_cfg.param_list}
 
         # encoders
-        self.E_flame = ResnetEncoder(outsize=self.n_param).to(self.device) 
-        self.E_detail = ResnetEncoder(outsize=self.n_detail).to(self.device)
+        self.E_flame = RNNResnetEncoder(outsize=self.n_param).to(self.device)
+        self.E_detail = RNNResnetEncoder(outsize=self.n_detail).to(self.device)
         # decoders
         self.flame = FLAME(model_cfg).to(self.device)
         if model_cfg.use_tex:
@@ -119,7 +121,7 @@ class DECA(nn.Module):
         batch_size = uv_z.shape[0]
         uv_coarse_vertices = self.render.world2uv(coarse_verts).detach()
         uv_coarse_normals = self.render.world2uv(coarse_normals).detach()
-    
+
         uv_z = uv_z*self.uv_face_eye_mask
         uv_detail_vertices = uv_coarse_vertices + uv_z*uv_coarse_normals + self.fixed_uv_dis[None,None,:,:]*uv_coarse_normals.detach()
         dense_vertices = uv_detail_vertices.permute(0,2,3,1).reshape([batch_size, -1, 3])
@@ -136,14 +138,19 @@ class DECA(nn.Module):
         return vis68
 
     # @torch.no_grad()
-    def encode(self, images, use_detail=True):
+    def encode(self, images, use_detail=True):  # [16, 3, 224, 224]
+
         if use_detail:
             # use_detail is for training detail model, need to set coarse model as eval mode
             with torch.no_grad():
+                # pdb.set_trace()
+                # print("@@@@@@@@@@@", images.shape)
+                if len(images.shape) == 4:
+                    images = images.unsqueeze(0)
                 parameters = self.E_flame(images)
         else:
-            parameters = self.E_flame(images)
-        codedict = self.decompose_code(parameters, self.param_dict)
+            parameters = self.E_flame(images)  # [16, 236]
+        codedict = self.decompose_code(parameters, self.param_dict)  # 'shape':[16, 100], 'tex':[16, 50], 'pose': [16, 6], 'cam': [16, 3], 'light': [16, 9, 3],
         codedict['images'] = images
         if use_detail:
             detailcode = self.E_detail(images)
@@ -153,7 +160,7 @@ class DECA(nn.Module):
             euler_jaw_pose = posecode[:,3:].clone() # x for yaw (open mouth), y for pitch (left ang right), z for roll
             posecode[:,3:] = batch_euler2axis(euler_jaw_pose)
             codedict['pose'] = posecode
-            codedict['euler_jaw_pose'] = euler_jaw_pose  
+            codedict['euler_jaw_pose'] = euler_jaw_pose
         return codedict
 
     # @torch.no_grad()
@@ -161,21 +168,20 @@ class DECA(nn.Module):
                 render_orig=False, original_image=None, tform=None):
         images = codedict['images']
         batch_size = images.shape[0]
-        
+
         ## decode
-        print("1")
+        # verts: [32, 5023, 3], landmarks2d: [32, 68, 3], landmarks3d: [32, 68, 3]
         verts, landmarks2d, landmarks3d = self.flame(shape_params=codedict['shape'], expression_params=codedict['exp'], pose_params=codedict['pose'])
         if self.cfg.model.use_tex:
-            albedo = self.flametex(codedict['tex'])
+            albedo = self.flametex(codedict['tex'])  #[32, 3, 256, 256]
         else:
-            albedo = torch.zeros([batch_size, 3, self.uv_size, self.uv_size], device=images.device) 
-        landmarks3d_world = landmarks3d.clone()
-        print("1")
-        
+            albedo = torch.zeros([batch_size, 3, self.uv_size, self.uv_size], device=images.device)
+        landmarks3d_world = landmarks3d.clone()  # [32, 68, 3]
+
         ## projection
-        landmarks2d = util.batch_orth_proj(landmarks2d, codedict['cam'])[:,:,:2]; landmarks2d[:,:,1:] = -landmarks2d[:,:,1:]#; landmarks2d = landmarks2d*self.image_size/2 + self.image_size/2
-        landmarks3d = util.batch_orth_proj(landmarks3d, codedict['cam']); landmarks3d[:,:,1:] = -landmarks3d[:,:,1:] #; landmarks3d = landmarks3d*self.image_size/2 + self.image_size/2
-        trans_verts = util.batch_orth_proj(verts, codedict['cam']); trans_verts[:,:,1:] = -trans_verts[:,:,1:]
+        landmarks2d = util.batch_orth_proj(landmarks2d, codedict['cam'])[:,:,:2]; landmarks2d[:,:,1:] = -landmarks2d[:,:,1:]# [32, 68, 2]  ; landmarks2d = landmarks2d*self.image_size/2 + self.image_size/2
+        landmarks3d = util.batch_orth_proj(landmarks3d, codedict['cam']); landmarks3d[:,:,1:] = -landmarks3d[:,:,1:] #[32, 68, 3]  ; landmarks3d = landmarks3d*self.image_size/2 + self.image_size/2
+        trans_verts = util.batch_orth_proj(verts, codedict['cam']); trans_verts[:,:,1:] = -trans_verts[:,:,1:]  # [32, 5023, 3]
         opdict = {
             'verts': verts,
             'trans_verts': trans_verts,
@@ -192,10 +198,10 @@ class DECA(nn.Module):
             opdict['rendered_images'] = ops['images']
             opdict['alpha_images'] = ops['alpha_images']
             opdict['normal_images'] = ops['normal_images']
-        
+
         if self.cfg.model.use_tex:
             opdict['albedo'] = albedo
-            
+
         if use_detail:
             uv_z = self.D_detail(torch.cat([codedict['pose'][:,3:], codedict['exp'], codedict['detail']], dim=1))
             if iddict is not None:
@@ -204,11 +210,11 @@ class DECA(nn.Module):
             uv_shading = self.render.add_SHlight(uv_detail_normals, codedict['light'])
             uv_texture = albedo*uv_shading
 
-            opdict['uv_texture'] = uv_texture 
+            opdict['uv_texture'] = uv_texture
             opdict['normals'] = ops['normals']
             opdict['uv_detail_normals'] = uv_detail_normals
             opdict['displacement_map'] = uv_z+self.fixed_uv_dis[None,None,:,:]
-        
+
         if vis_lmk:
             landmarks3d_vis = self.visofp(ops['transformed_normals'])#/self.image_size
             landmarks3d = torch.cat([landmarks3d, landmarks3d_vis], dim=2)
@@ -231,7 +237,7 @@ class DECA(nn.Module):
             shape_images, _, grid, alpha_images = self.render.render_shape(verts, trans_verts, h=h, w=w, images=background, return_grid=True)
             detail_normal_images = F.grid_sample(uv_detail_normals, grid, align_corners=False)*alpha_images
             shape_detail_images = self.render.render_shape(verts, trans_verts, detail_normal_images=detail_normal_images, h=h, w=w, images=background)
-            
+
             ## extract texture
             ## TODO: current resolution 256x256, support higher resolution, and add visibility
             uv_pverts = self.render.world2uv(trans_verts)
@@ -241,10 +247,10 @@ class DECA(nn.Module):
                 uv_texture_gt = uv_gt[:,:3,:,:]*self.uv_face_eye_mask + (uv_texture[:,:3,:,:]*(1-self.uv_face_eye_mask))
             else:
                 uv_texture_gt = uv_gt[:,:3,:,:]*self.uv_face_eye_mask + (torch.ones_like(uv_gt[:,:3,:,:])*(1-self.uv_face_eye_mask)*0.7)
-            
+
             opdict['uv_texture_gt'] = uv_texture_gt
             visdict = {
-                'inputs': images, 
+                'inputs': images,
                 'landmarks2d': util.tensor_vis_landmarks(images, landmarks2d),
                 'landmarks3d': util.tensor_vis_landmarks(images, landmarks3d),
                 'shape_images': shape_images,
@@ -276,7 +282,7 @@ class DECA(nn.Module):
         grid_image = (grid.numpy().transpose(1,2,0).copy()*255)[:,:,[2,1,0]]
         grid_image = np.minimum(np.maximum(grid_image, 0), 255).astype(np.uint8)
         return grid_image
-    
+
     def save_obj(self, filename, opdict):
         '''
         vertices: [nv, 3], tensor
@@ -290,22 +296,22 @@ class DECA(nn.Module):
         uvfaces = self.render.uvfaces[0].cpu().numpy()
         # save coarse mesh, with texture and normal map
         normal_map = util.tensor2image(opdict['uv_detail_normals'][i]*0.5 + 0.5)
-        util.write_obj(filename, vertices, faces, 
-                        texture=texture, 
-                        uvcoords=uvcoords, 
-                        uvfaces=uvfaces, 
+        util.write_obj(filename, vertices, faces,
+                        texture=texture,
+                        uvcoords=uvcoords,
+                        uvfaces=uvfaces,
                         normal_map=normal_map)
         # upsample mesh, save detailed mesh
         texture = texture[:,:,[2,1,0]]
         normals = opdict['normals'][i].cpu().numpy()
         displacement_map = opdict['displacement_map'][i].cpu().numpy().squeeze()
         dense_vertices, dense_colors, dense_faces = util.upsample_mesh(vertices, normals, faces, displacement_map, texture, self.dense_template)
-        util.write_obj(filename.replace('.obj', '_detail.obj'), 
-                        dense_vertices, 
+        util.write_obj(filename.replace('.obj', '_detail.obj'),
+                        dense_vertices,
                         dense_faces,
                         colors = dense_colors,
                         inverse_face_order=True)
-    
+
     def run(self, imagepath, iscrop=True):
         ''' An api for running deca given an image path
         '''

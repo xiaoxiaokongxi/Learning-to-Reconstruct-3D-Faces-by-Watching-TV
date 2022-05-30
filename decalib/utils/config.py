@@ -24,12 +24,12 @@ cfg.model.topology_path = os.path.join(cfg.deca_dir, 'data', 'head_template.obj'
 # texture data original from http://files.is.tue.mpg.de/tbolkart/FLAME/FLAME_texture_data.zip
 cfg.model.dense_template_path = os.path.join(cfg.deca_dir, 'data', 'texture_data_256.npy')
 cfg.model.fixed_displacement_path = os.path.join(cfg.deca_dir, 'data', 'fixed_displacement_256.npy')
-cfg.model.flame_model_path = os.path.join(cfg.deca_dir, 'data', 'generic_model.pkl') 
-cfg.model.flame_lmk_embedding_path = os.path.join(cfg.deca_dir, 'data', 'landmark_embedding.npy') 
-cfg.model.face_mask_path = os.path.join(cfg.deca_dir, 'data', 'uv_face_mask.png') 
-cfg.model.face_eye_mask_path = os.path.join(cfg.deca_dir, 'data', 'uv_face_eye_mask.png') 
-cfg.model.mean_tex_path = os.path.join(cfg.deca_dir, 'data', 'mean_texture.jpg') 
-cfg.model.tex_path = os.path.join(cfg.deca_dir, 'data', 'FLAME_albedo_from_BFM.npz') 
+cfg.model.flame_model_path = os.path.join(cfg.deca_dir, 'data', 'generic_model.pkl')
+cfg.model.flame_lmk_embedding_path = os.path.join(cfg.deca_dir, 'data', 'landmark_embedding.npy')
+cfg.model.face_mask_path = os.path.join(cfg.deca_dir, 'data', 'uv_face_mask.png')
+cfg.model.face_eye_mask_path = os.path.join(cfg.deca_dir, 'data', 'uv_face_eye_mask.png')
+cfg.model.mean_tex_path = os.path.join(cfg.deca_dir, 'data', 'mean_texture.jpg')
+cfg.model.tex_path = os.path.join(cfg.deca_dir, 'data', 'FLAME_albedo_from_BFM.npz')
 cfg.model.tex_type = 'BFM' # BFM, FLAME, albedoMM
 cfg.model.uv_size = 256
 cfg.model.param_list = ['shape', 'tex', 'exp', 'pose', 'cam', 'light']
@@ -46,7 +46,7 @@ cfg.model.fr_model_path = os.path.join(cfg.deca_dir, 'data', 'resnet50_ft_weight
 
 ## details
 cfg.model.n_detail = 128
-cfg.model.max_z = 0.01
+cfg.model.max_z = 0.001  # TODO: 0.01
 
 # ---------------------------------------------------------------------------- #
 # Options for Dataset
@@ -56,8 +56,8 @@ cfg.dataset.training_data = ['vggface2']
 # cfg.dataset.training_data = ['ethnicity']
 cfg.dataset.eval_data = ['vggface2']
 cfg.dataset.test_data = ['']
-cfg.dataset.batch_size = 4
-cfg.dataset.K = 1
+cfg.dataset.batch_size = 1
+cfg.dataset.K = 5
 cfg.dataset.isSingle = False
 cfg.dataset.num_workers = 2
 cfg.dataset.image_size = 224

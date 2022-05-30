@@ -1,18 +1,18 @@
 # Time:
 # around 15min/1000iterations
-# in total, needs around 
-output_dir: "/content/drive/MyDrive/Colab_Notebooks/NewDECA/Coarse"
-pretrained_modelpath: "/content/drive/MyDrive/Colab_Notebooks/DECA/data/deca_model.tar"
+# in total, needs around
+output_dir: "work_dir/DECA_RNNwithBN_tmp4w_Coarse"
+pretrained_modelpath: "work_dir/DECA_RNNwithBN_tmp/models/00040000.tar"
 dataset:
-  batch_size: 12
-  K: 1
+  batch_size: 2
+  K: 5
 train:
   resume: True
-  max_epochs: 100
-  max_steps: 200000
+  max_epochs: 1000
+  max_steps: 100000
   log_steps: 20
-  vis_steps: 500
-  checkpoint_steps: 1000
+  vis_steps: 100
+  checkpoint_steps: 100
   val_steps: 500
   eval_steps: 1000
 

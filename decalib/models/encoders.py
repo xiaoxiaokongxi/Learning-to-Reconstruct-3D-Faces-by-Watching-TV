@@ -2,8 +2,8 @@
 #
 # Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. (MPG) is
 # holder of all proprietary rights on this computer program.
-# Using this computer program means that you agree to the terms 
-# in the LICENSE file included with this software distribution. 
+# Using this computer program means that you agree to the terms
+# in the LICENSE file included with this software distribution.
 # Any use not explicitly granted by the LICENSE is prohibited.
 #
 # Copyright©2019 Max-Planck-Gesellschaft zur Förderung
@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from . import resnet
+import pdb
 
 class ResnetEncoder(nn.Module):
     def __init__(self, outsize, last_op=None):
@@ -32,9 +33,32 @@ class ResnetEncoder(nn.Module):
         )
         self.last_op = last_op
 
-    def forward(self, inputs):
-        features = self.encoder(inputs)
-        parameters = self.layers(features)
+    def forward(self, inputs):   # [16, 3, 224, 224]
+        # print("1111", inputs.shape)
+        features = self.encoder(inputs)    # [16, 2048]
+        parameters = self.layers(features) # [16, 236]
+        if self.last_op:
+            parameters = self.last_op(parameters)
+        return parameters
+
+
+
+class RNNResnetEncoder(nn.Module):
+    def __init__(self, outsize, last_op=None):
+        super(RNNResnetEncoder, self).__init__()
+        feature_size = 2048
+        self.encoder = resnet.load_TemporalResNet50Model() #out: 2048
+        ### regressor
+        self.layers = nn.Sequential(
+            nn.Linear(feature_size, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, outsize)
+        )
+        self.last_op = last_op
+
+    def forward(self, inputs):   # [16, 3, 224, 224]
+        features = self.encoder(inputs)    # [16, 2048]
+        parameters = self.layers(features) # [16, 236]
         if self.last_op:
             parameters = self.last_op(parameters)
         return parameters

@@ -1,16 +1,16 @@
 
 # Why:
-# training with only lmk loss for good initialization, 
+# training with only lmk loss for good initialization,
 # because the use of photometric loss needs good initialization both in regression and optimization
 # and also, photometric loss needs differentiable rendering that makes the training slow
-# 
-# 
-output_dir: "/content/drive/MyDrive/Colab_Notebooks/NewDECA/Pre"
+#
+#
+output_dir: "work_dir/DECA_RNNwithBN_tmp"
 # pretrained_modelpath: "/content/drive/MyDrive/Colab_Notebooks/NewDECA/Detail/"
-pretrained_modelpath: " "
+pretrained_modelpath: " " # "work_dir/DECA_RNNwithBN1/models/00050000.tar"  #
 dataset:
-  batch_size: 16
-  K: 1
+  batch_size: 2
+  K: 5
 loss:
   photo: 0.
   id: 0.
@@ -20,10 +20,10 @@ loss:
   shape_consistency: False
 train:
   resume: True
-  max_epochs: 200
+  max_epochs: 10000
   max_steps: 100000
   log_steps: 10
-  vis_steps: 500
-  checkpoint_steps: 1000
-  val_steps: 500
+  vis_steps: 100
+  checkpoint_steps: 100
+  val_steps: 100
   eval_steps: 1000
