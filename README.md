@@ -51,7 +51,7 @@ Clone the repo:
     ```   
     to visualize the predicted 2D landmanks, 3D landmarks (red means non-visible points), coarse geometry, detailed geometry, and depth.   
     <p align="center">   
-    <img src="Doc/images/id04657-PPHljWCZ53c-000565_inputs_inputs_vis.jpg">
+    <img src="Doc/images/evaluation.png">
     </p>  
     <p align="center">   
     <img src="Doc/images/IMG_0392_inputs_vis.jpg">
@@ -174,5 +174,3 @@ masks = evaluate(respth=RESULT_SAVE_PATH,
                  model_path=PRETRAINED_MODEL_PATH,
                  save_masks=TRUE/FALSE,
                  save_imgs=TRUE/FALSE)
-```
->>>>>>> b79079a36250d9859228fed789b00e7e150ee31c
