@@ -14,7 +14,7 @@ This implementation is modified based on [DECA](https://github.com/YadiraF/DECA)
 ## Getting Started
 Clone the repo:
   ```bash
-  git clone [https://github.com/YadiraF/DECA](https://github.com/xiaoxiaokongxi/Learning-to-Reconstruct-3D-Faces-by-Watching-TV)
+  git clone git@github.com:xiaoxiaokongxi/Learning-to-Reconstruct-3D-Faces-by-Watching-TV.git
   cd Learning-to-Reconstruct-3D-Faces-by-Watching-TV
   ```  
 
