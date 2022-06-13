@@ -59,15 +59,17 @@ We provide a sequence of 5 faces with detected keypoints and segmentation mask [
 
     b. Prepare label  
     [FAN](https://github.com/1adrianb/2D-and-3D-face-alignment) to predict 68 2D landmark  
-    [face-parsing]([https://github.com/YuvalNirkin/face_segmentation](https://github.com/xiyichen/face-parsing.PyTorch)) to get skin mask  
-    Check out [preprocess.py](https://github.com/xiaoxiaokongxi/Learning-to-Reconstruct-3D-Faces-by-Watching-TV/blob/main/preprocess.py) fo how we prrprocess our data.
+    [face-parsing](https://github.com/xiyichen/face-parsing.PyTorch) to get skin mask  
+    Check out [preprocess.py](https://github.com/xiaoxiaokongxi/Learning-to-Reconstruct-3D-Faces-by-Watching-TV/blob/main/preprocess.py) fo how we preprocess our data.
 
     c. Modify dataloader   
     Dataloaders for different datasets are in decalib/datasets, use the right path for prepared images and labels. 
 
 2. Download pre-trained model  
     a. We use the model from [VGGFace2-pytorch](https://github.com/cydonia999/VGGFace2-pytorch) for calculating identity loss and put it into ./data
+    
     b. Download [face segmentation pretrained model](https://drive.google.com/open?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812) and specify the model path when using the face segmentation tool
+    
     c. Download [SPyNet pretrained model](https://download.openmmlab.com/mmediting/restorers/basicvsr/spynet_20210409-c6c1bd09.pth) and specify its path in resnet.py, which we will use to compute optical flows in our temporal feature extractor.
 
 3. Start training
