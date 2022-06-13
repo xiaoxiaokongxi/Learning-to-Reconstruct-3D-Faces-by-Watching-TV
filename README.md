@@ -1,27 +1,21 @@
-<<<<<<< HEAD
-# DECA: Detailed Expression Capture and Animation (SIGGRAPH2021)
+# Learning-to-Reconstruct-3D-Faces-by-Watching-TV
+3D Vision course project at ETH Zürich by Mengya Liu, Jiezhang Cao, Tianhao Li, and Xiyi Chen. We utilize temporal information in videos to reconstruct high-fidelity 3D face mesh with detailed person-specific expressions.
 
 <p align="center"> 
-<img src="TestSamples/teaser/results/teaser.gif">
+<img src="Doc/images/architecture.png">
 </p>
-<p align="center">input image, aligned reconstruction, animation with various poses & expressions<p align="center">
+<p>(Left) Our network architecture. Modified based on DECA, we replace DECA’s encoders with temporal encoders to encode temporal information from video sequences. (Right) Details of our bidirectional-RNN temporal feature extractors with second-order grid propagation and flow-guided deformable alignment, modified based on BasicVSR++.<p>
 
-This is the official Pytorch implementation of DECA. 
+Most 3D face reconstruction methods have limited abilities to capture fine-scale details. Seeking to produce more accurate person-specific details, DECA produces UV
+displacement map, which contains parameters on both person-specific details and generic expressions, from lowdimensional latent codes regressed from input images. Although it demonstrates state-of-the-art performance on benchmark datasets, computational efficiency, and robustness to occlusions, it could still suffer from the severe ambiguity and ill-posedness of in-the-wild images. **In this work, we propose to use the abundant information across frames from TV series videos. We collect a sequential face dataset of subjects with continuous movements. We modify DECA and include bidirectional RNN based temporal feature extractors to propagate and aggregate temporal inforamtion across frames. Qualitative evaluation results show that our method captures more details in facial expressions compared to DECA. You can find our report [here](https://github.com/xiaoxiaokongxi/Learning-to-Reconstruct-3D-Faces-by-Watching-TV/blob/main/Learning_to_Reconstruct_3D_Faces_by_Watching_TV.pdf).**
 
-DECA reconstructs a 3D head model with detailed facial geometry from a single input image. The resulting 3D head model can be easily animated. Please refer to the [arXiv paper](https://arxiv.org/abs/2012.04012) for more details.
-
-The main features:
-
-* **Reconstruction:** produces head pose, shape, detailed face geometry, and lighting information from a single image.
-* **Animation:** animate the face with realistic wrinkle deformations.
-* **Robustness:** tested on facial images in unconstrained conditions.  Our method is robust to various poses, illuminations and occlusions. 
-* **Accurate:** state-of-the-art 3D face shape reconstruction on the [NoW Challenge](https://ringnet.is.tue.mpg.de/challenge) benchmark dataset.
-
+This implementation is modified based on [DECA](https://github.com/YadiraF/DECA) and [BasicVSR++](https://github.com/ckkelvinchan/BasicVSR_PlusPlus).
+  
 ## Getting Started
 Clone the repo:
   ```bash
-  git clone https://github.com/YadiraF/DECA
-  cd DECA
+  git clone [https://github.com/YadiraF/DECA](https://github.com/xiaoxiaokongxi/Learning-to-Reconstruct-3D-Faces-by-Watching-TV)
+  cd Learning-to-Reconstruct-3D-Faces-by-Watching-TV
   ```  
 
 ### Requirements
@@ -44,50 +38,18 @@ Clone the repo:
     b. download [DECA trained model](https://drive.google.com/file/d/1rp8kdyLPvErw2dTmqtjISRVvQLj6Yzje/view?usp=sharing), and put it in ./data (**no unzip required**)  
     c. (Optional) follow the instructions for the [Albedo model](https://github.com/TimoBolkart/BFM_to_FLAME) to get 'FLAME_albedo_from_BFM.npz', put it into ./data
 
-2. Run demos  
-    a. **reconstruction**  
-    ```bash
-    python demos/demo_reconstruct.py -i TestSamples/examples --saveDepth True --saveObj True
-    ```   
-    to visualize the predicted 2D landmanks, 3D landmarks (red means non-visible points), coarse geometry, detailed geometry, and depth.   
-    <p align="center">   
-    <img src="Doc/images/evaluation.png">
-    </p>  
-    <p align="center">   
-    <img src="Doc/images/IMG_0392_inputs_vis.jpg">
-    </p>  
-    You can also generate an obj file (which can be opened with Meshlab) that includes extracted texture from the input image.  
-
-    Please run `python demos/demo_reconstruct.py --help` for more details. 
-
-    b. **expression transfer**   
-    ```bash
-    python demos/demo_transfer.py
-    ```   
-    Given an image, you can reconstruct its 3D face, then animate it by tranfering expressions from other images. 
-    Using Meshlab to open the detailed mesh obj file, you can see something like that:
-    <p align="center"> 
-    <img src="Doc/images/soubhik.gif">
-    </p>  
-    (Thank Soubhik for allowing me to use his face ^_^)   
-    
-    Note that, you need to set '--useTex True' to get full texture.   
-
-    c. for the [teaser gif](https://github.com/YadiraF/DECA/results/teaser.gif) (**reposing** and **animation**)
-    ```bash
-    python demos/demo_teaser.py 
-    ``` 
-    
-    More demos and training code coming soon.
-
-## Evaluation
-DECA (ours) achieves 9% lower mean shape reconstruction error on the [NoW Challenge](https://ringnet.is.tue.mpg.de/challenge) dataset compared to the previous state-of-the-art method.  
-The left figure compares the cumulative error of our approach and other recent methods (RingNet and Deng et al. have nearly identitical performance, so their curves overlap each other). Here we use point-to-surface distance as the error metric, following the NoW Challenge.  
-<p align="left"> 
-<img src="Doc/images/DECA_evaluation_github.png">
+2. Run reconstruction demo 
+```bash
+python demos/demo_reconstruct.py -i TestSamples/examples --saveDepth True --saveObj True
+```   
+to visualize the predicted 2D landmanks, 3D landmarks (red means non-visible points), coarse geometry, detailed geometry, and depth.   
+<p align="center">   
+<img src="Doc/images/evaluation.png">
 </p>
 
-For more details of the evaluation, please check our [arXiv paper](https://arxiv.org/abs/2012.04012). 
+Please run `python demos/demo_reconstruct.py --help` for more details. 
+
+We provide a sequence of 5 faces with detected keypoints and segmentation mask [here](https://github.com/xiaoxiaokongxi/Learning-to-Reconstruct-3D-Faces-by-Watching-TV/tree/main/TestSamples/TV_series/id1). For more details of the evaluation, please check our report. 
 
 ## Training
 1. Prepare Training Data
@@ -97,15 +59,16 @@ For more details of the evaluation, please check our [arXiv paper](https://arxiv
 
     b. Prepare label  
     [FAN](https://github.com/1adrianb/2D-and-3D-face-alignment) to predict 68 2D landmark  
-    [face_segmentation](https://github.com/YuvalNirkin/face_segmentation) to get skin mask  
+    [face-parsing]([https://github.com/YuvalNirkin/face_segmentation](https://github.com/xiyichen/face-parsing.PyTorch)) to get skin mask  
+    Check out [preprocess.py](https://github.com/xiaoxiaokongxi/Learning-to-Reconstruct-3D-Faces-by-Watching-TV/blob/main/preprocess.py) fo how we prrprocess our data.
 
     c. Modify dataloader   
     Dataloaders for different datasets are in decalib/datasets, use the right path for prepared images and labels. 
 
-2. Download face recognition trained model  
-    We use the model from [VGGFace2-pytorch](https://github.com/cydonia999/VGGFace2-pytorch) for calculating identity loss,
-    download [resnet50_ft](https://drive.google.com/file/d/1A94PAAnwk6L7hXdBXLFosB_s0SzEhAFU/view),
-    and put it into ./data  
+2. Download pre-trained model  
+    a. We use the model from [VGGFace2-pytorch](https://github.com/cydonia999/VGGFace2-pytorch) for calculating identity loss and put it into ./data
+    b. Download [face segmentation pretrained model](https://drive.google.com/open?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812) and specify the model path when using the face segmentation tool
+    c. Download [SPyNet pretrained model](https://download.openmmlab.com/mmediting/restorers/basicvsr/spynet_20210409-c6c1bd09.pth) and specify its path in resnet.py, which we will use to compute optical flows in our temporal feature extractor.
 
 3. Start training
 
@@ -116,10 +79,10 @@ For more details of the evaluation, please check our [arXiv paper](https://arxiv
     python main_train.py --cfg configs/release_version/deca_detail.yml 
     ```
     In the yml files, write the right path for 'output_dir' and 'pretrained_modelpath'.  
-    You can also use [released model](https://drive.google.com/file/d/1rp8kdyLPvErw2dTmqtjISRVvQLj6Yzje/view) as pretrained model, then ignor the pretrain step.
+    You can also use [released model](https://drive.google.com/file/d/1rp8kdyLPvErw2dTmqtjISRVvQLj6Yzje/view) as pretrained model, then ignore the pretrain step.
 
 ## Citation
-If you find our work useful to your research, please consider citing:
+If you find our work useful to your research, please cite the 2 works that it builds on:
 ```
 @inproceedings{DECA:Siggraph2021,
   title={Learning an Animatable Detailed {3D} Face Model from In-The-Wild Images},
@@ -130,47 +93,11 @@ If you find our work useful to your research, please consider citing:
   year = {2021}, 
   url = {https://doi.org/10.1145/3450626.3459936} 
 }
+
+@inproceedings{chan2022basicvsrpp,
+  author = {Chan, Kelvin C.K. and Zhou, Shangchen and Xu, Xiangyu and Loy, Chen Change},
+  title = {{BasicVSR++}: Improving video super-resolution with enhanced propagation and alignment},
+  booktitle = {IEEE Conference on Computer Vision and Pattern Recognition},
+  year = {2022}
+}
 ```
-
-<!-- ## Notes
-1. Training code will also be released in the future. -->
-
-## License
-This code and model are available for non-commercial scientific research purposes as defined in the [LICENSE](https://github.com/YadiraF/DECA/blob/master/LICENSE) file.
-By downloading and using the code and model you agree to the terms in the [LICENSE](https://github.com/YadiraF/DECA/blob/master/LICENSE). 
-
-## Acknowledgements
-For functions or scripts that are based on external sources, we acknowledge the origin individually in each file.  
-Here are some great resources we benefit:  
-- [FLAME_PyTorch](https://github.com/soubhiksanyal/FLAME_PyTorch) and [TF_FLAME](https://github.com/TimoBolkart/TF_FLAME) for the FLAME model  
-- [Pytorch3D](https://pytorch3d.org/), [neural_renderer](https://github.com/daniilidis-group/neural_renderer), [SoftRas](https://github.com/ShichenLiu/SoftRas) for rendering  
-- [kornia](https://github.com/kornia/kornia) for image/rotation processing  
-- [face-alignment](https://github.com/1adrianb/face-alignment) for cropping   
-- [FAN](https://github.com/1adrianb/2D-and-3D-face-alignment) for landmark detection
-- [face_segmentation](https://github.com/YuvalNirkin/face_segmentation) for skin mask
-- [VGGFace2-pytorch](https://github.com/cydonia999/VGGFace2-pytorch) for identity loss  
-
-We would also like to thank other recent public 3D face reconstruction works that allow us to easily perform quantitative and qualitative comparisons :)  
-[RingNet](https://github.com/soubhiksanyal/RingNet), 
-[Deep3DFaceReconstruction](https://github.com/microsoft/Deep3DFaceReconstruction/blob/master/renderer/rasterize_triangles.py), 
-[Nonlinear_Face_3DMM](https://github.com/tranluan/Nonlinear_Face_3DMM),
-[3DDFA-v2](https://github.com/cleardusk/3DDFA_V2),
-[extreme_3d_faces](https://github.com/anhttran/extreme_3d_faces),
-[facescape](https://github.com/zhuhao-nju/facescape)
-<!-- 3DMMasSTN, DenseReg, 3dmm_cnn, vrn, pix2vertex -->
-=======
-# Learning-to-Reconstruct-3D-Faces-by-Watching-TV
-3D Vision course project from ETHZ, generate person-specific high-quality 3D face models from TV videos 
-## Face segmentation
-Use own repo
-```Shell
-git clone git@github.com:xiyichen/face-parsing.PyTorch.git
-```
-then
-```Shell
-from pred_mask import evaluate
-masks = evaluate(respth=RESULT_SAVE_PATH,
-                 dspth=INPUT_IMAGE_PATH,
-                 model_path=PRETRAINED_MODEL_PATH,
-                 save_masks=TRUE/FALSE,
-                 save_imgs=TRUE/FALSE)
